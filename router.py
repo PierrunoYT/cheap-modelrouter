@@ -326,10 +326,16 @@ class EasyChineseModelRouter:
         if token_estimate > 70_000:
             return "long_context"
 
+        # Each category carries both English (\b word-boundary) patterns and
+        # Chinese/CJK patterns. CJK has no word boundaries, so those are bare
+        # substring alternations -- important for a Chinese-model router, where
+        # prompts like "用 Python 写一个排序函数" must classify correctly.
+
         # Strong code signals (fenced code, language syntax) win outright.
         if any(re.search(pattern, text) for pattern in [
             r"```|\bdef \b|\bclass \b|\bfunction \b|\bconst \b|\blet \b|\bimport \b",
             r"\b(stack trace|traceback|stacktrace|segfault|compile error|syntax error)\b",
+            r"(堆栈|回溯|报错|编译错误|段错误|异常堆栈)",
         ]):
             return "coding"
 
@@ -340,6 +346,8 @@ class EasyChineseModelRouter:
             r"\bwrite a prompt\b",
             r"\bmake it sound\b",
             r"\b(brainstorm|come up with) (some )?(ideas|names|titles)\b",
+            r"写.{0,15}(故事|诗|诗歌|歌词|剧本|散文|文案|标语|口号|广告语|对联)",
+            r"(起.{0,2}名|取.{0,2}名|想.{0,4}名字|起标题|头条标题)",
         ]):
             return "creative"
 
@@ -349,6 +357,7 @@ class EasyChineseModelRouter:
             r"\bfix (the )?grammar\b",
             r"\brewrite (this )?in\b",
             r"\binto (chinese|english|japanese|korean|spanish|french|german)\b",
+            r"(翻译|译成|改写成|润色|语法错误)",
         ]):
             return "translation"
 
@@ -356,12 +365,15 @@ class EasyChineseModelRouter:
         if any(re.search(pattern, text) for pattern in [
             r"\b(code|coding|debug|refactor|bug fix|stack overflow|repo|git|pull request|commit|diff|patch)\b",
             r"\b(python|typescript|javascript|node|react|fastapi|powershell|bash|sql|docker|kubernetes)\b",
+            r"(代码|编程|调试|重构|函数|算法|脚本|程序(?!员)|接口|报错|修复.{0,3}bug)",
+            r"写.{0,6}(函数|程序|脚本|类|接口|代码|算法)",
         ]):
             return "coding"
 
         if any(re.search(pattern, text) for pattern in [
             r"\b(reason|think|analyze|architecture|compare|tradeoff|prove|math|optimize|evaluate)\b",
             r"\b(why|which is better|best approach|design|plan)\b",
+            r"(分析|推理|为什么|比较|权衡|证明|数学|优化|评估|架构|设计|规划|哪个更好|最佳方案|怎么实现|如何实现)",
         ]):
             return "reasoning"
 
