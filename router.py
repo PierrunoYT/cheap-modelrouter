@@ -96,6 +96,12 @@ class ModelProfile:
 # unreliable. Kimi K2.7-code carries a small allowance above its
 # general-intelligence index because it is a coding specialist and the
 # router mostly sends it coding tasks.
+#
+# strengths: grounded in AA's per-domain charts (Coding Index, Agentic
+# Index, AA-LCR, GPQA/HLE/CritPt, AA-Omniscience, IFBench; read
+# 2026-07-01), compared within this table's cohort. translation/creative
+# are not benchmarked by AA and remain judgment calls. qwen3.7-plus and
+# mimo-v2.5 (base) are not in the charts; their strengths are unverified.
 MODELS: list[ModelProfile] = [
     # DeepSeek
     ModelProfile(
@@ -104,7 +110,9 @@ MODELS: list[ModelProfile] = [
         model="deepseek/deepseek-v4-flash",
         cost_score=1.0,
         quality_score=7.6,  # AA index 40 (up to 47 at max reasoning effort)
-        strengths={"simple", "coding", "long_context", "translation"},
+        # AA charts: coding 56.2 (great per dollar); worst cohort AA-LCR (63)
+        # so no long_context strength despite the 1M window.
+        strengths={"simple", "coding", "translation"},
         max_context_tokens=1_000_000,
         notes="Cheap default. Good for simple/coding/long-context first pass.",
         reasoning=True,
@@ -115,7 +123,9 @@ MODELS: list[ModelProfile] = [
         model="deepseek/deepseek-v4-pro",
         cost_score=2.2,
         quality_score=8.0,  # AA index 44, #3/93 open-weights
-        strengths={"reasoning", "coding", "long_context"},
+        # AA charts: coding 59.4, agentic 36.4 (#2 cohort); AA-LCR 66 is weak
+        # for the cohort, so long_context strength dropped.
+        strengths={"reasoning", "coding"},
         max_context_tokens=1_000_000,
         notes="Stronger DeepSeek option for reasoning and larger coding tasks.",
         reasoning=True,
@@ -139,6 +149,7 @@ MODELS: list[ModelProfile] = [
         model="qwen/qwen3.7-max",
         cost_score=3.4,
         quality_score=8.2,  # AA index 46
+        # AA charts confirm: coding 66.0 (#2 cohort), reasoning #2 (HLE 38).
         strengths={"coding", "reasoning", "creative"},
         max_context_tokens=1_000_000,
         notes="Flagship Qwen (3.7) for coding and reasoning.",
@@ -152,6 +163,8 @@ MODELS: list[ModelProfile] = [
         model="moonshotai/kimi-k2.7-code",
         cost_score=2.7,
         quality_score=8.2,  # AA index 42 + coding-specialist allowance
+        # AA per-domain charts only cover K2.6 (general), not K2.7-code, so
+        # strengths kept on the coding-specialist assumption.
         strengths={"coding", "reasoning", "long_context"},
         max_context_tokens=262_000,
         notes="Strong coding/agent model from Moonshot Kimi family.",
@@ -165,6 +178,8 @@ MODELS: list[ModelProfile] = [
         model="z-ai/glm-5.2",
         cost_score=2.5,
         quality_score=8.7,  # AA index 51, #1/93 open-weights
+        # AA charts: #1 cohort coding (68.8), agentic (43.1) and reasoning
+        # (HLE 41, CritPt 21); AA-LCR 71.
         strengths={"reasoning", "coding", "long_context"},
         max_context_tokens=1_000_000,
         notes="High-quality GLM route for reasoning, coding and long tasks.",
@@ -178,7 +193,10 @@ MODELS: list[ModelProfile] = [
         model="minimax/minimax-m3",
         cost_score=2.1,
         quality_score=8.0,  # AA index 44, #2/93 open-weights
-        strengths={"coding", "reasoning", "long_context", "creative"},
+        # AA charts: #1 cohort long context (AA-LCR 74), GPQA (93),
+        # non-hallucination (84%) and IFBench (83%) -> gains "simple" for
+        # factual questions; coding 58.6 is mid-cohort -> coding dropped.
+        strengths={"reasoning", "long_context", "creative", "simple"},
         max_context_tokens=1_000_000,
         notes="More capable MiniMax route with long-context support.",
         reasoning=True,
@@ -202,7 +220,9 @@ MODELS: list[ModelProfile] = [
         model="xiaomi/mimo-v2.5-pro",
         cost_score=2.4,
         quality_score=7.8,  # AA index 42, #5/93 open-weights
-        strengths={"coding", "reasoning", "long_context"},
+        # AA charts: coding 60.2 (#3 cohort), AA-LCR 73 (#2); but weakest
+        # cohort reasoning (HLE 35, GPQA 87, CritPt 4) -> reasoning dropped.
+        strengths={"coding", "long_context"},
         max_context_tokens=1_000_000,
         notes="Flagship MiMo route for harder coding/agent tasks.",
         reasoning=True,
