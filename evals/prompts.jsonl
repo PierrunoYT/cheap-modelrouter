@@ -1,0 +1,52 @@
+{"prompt": "hello there", "expected": "simple", "lang": "en"}
+{"prompt": "what's the capital of france?", "expected": "simple", "lang": "en"}
+{"prompt": "recommend a good sci-fi movie for tonight", "expected": "simple", "lang": "en"}
+{"prompt": "summarize this article in two sentences", "expected": "simple", "lang": "en"}
+{"prompt": "what time is it in beijing right now?", "expected": "simple", "lang": "en"}
+{"prompt": "optimize my sleep schedule", "expected": "simple", "lang": "en", "note": "known hard case: 'optimize' pulls it into reasoning"}
+{"prompt": "你好，今天过得怎么样？", "expected": "simple", "lang": "zh"}
+{"prompt": "法国的首都是哪里？", "expected": "simple", "lang": "zh"}
+{"prompt": "推荐一部好看的科幻电影", "expected": "simple", "lang": "zh"}
+{"prompt": "北京现在几点了？", "expected": "simple", "lang": "zh"}
+{"prompt": "fix this:\n```\ndef f(): return None\n```", "expected": "coding", "lang": "en"}
+{"prompt": "debug this python function that returns the wrong value", "expected": "coding", "lang": "en"}
+{"prompt": "write a sql query to find duplicate emails", "expected": "coding", "lang": "en"}
+{"prompt": "why does my docker container exit immediately?", "expected": "coding", "lang": "en"}
+{"prompt": "here's a traceback from my script, what went wrong?", "expected": "coding", "lang": "en"}
+{"prompt": "refactor this function to be more readable", "expected": "coding", "lang": "en"}
+{"prompt": "帮我写一个排序函数", "expected": "coding", "lang": "zh"}
+{"prompt": "这段代码报错了，帮我看看", "expected": "coding", "lang": "zh"}
+{"prompt": "用 python 写一个爬虫脚本", "expected": "coding", "lang": "mixed"}
+{"prompt": "调试一下这个程序", "expected": "coding", "lang": "zh"}
+{"prompt": "这个接口返回500错误，怎么排查？", "expected": "coding", "lang": "zh"}
+{"prompt": "用 Python 写一个二分查找函数", "expected": "coding", "lang": "mixed"}
+{"prompt": "帮我 debug 这段 code", "expected": "coding", "lang": "mixed"}
+{"prompt": "analyze the tradeoffs between the two approaches", "expected": "reasoning", "lang": "en"}
+{"prompt": "which is better for a startup: monolith or microservices?", "expected": "reasoning", "lang": "en"}
+{"prompt": "prove that the square root of 2 is irrational", "expected": "reasoning", "lang": "en"}
+{"prompt": "compare renting versus buying a home over ten years", "expected": "reasoning", "lang": "en"}
+{"prompt": "plan a go-to-market strategy for a new product", "expected": "reasoning", "lang": "en"}
+{"prompt": "分析一下这两种方案的优缺点", "expected": "reasoning", "lang": "zh"}
+{"prompt": "为什么这个方案比那个更好？", "expected": "reasoning", "lang": "zh"}
+{"prompt": "证明勾股定理", "expected": "reasoning", "lang": "zh"}
+{"prompt": "如何实现高可用架构？", "expected": "reasoning", "lang": "zh"}
+{"prompt": "比较这两种数据库的优劣", "expected": "reasoning", "lang": "zh"}
+{"prompt": "translate this paragraph into french", "expected": "translation", "lang": "en"}
+{"prompt": "fix the grammar in this email", "expected": "translation", "lang": "en"}
+{"prompt": "rewrite this in formal english", "expected": "translation", "lang": "en"}
+{"prompt": "translate 'good morning' to chinese", "expected": "translation", "lang": "en"}
+{"prompt": "translate 这段话 to English", "expected": "translation", "lang": "mixed"}
+{"prompt": "把这段话翻译成英文", "expected": "translation", "lang": "zh"}
+{"prompt": "帮我润色这段文字", "expected": "translation", "lang": "zh"}
+{"prompt": "这句话译成日语怎么说？", "expected": "translation", "lang": "zh"}
+{"prompt": "write a short story about bugs", "expected": "creative", "lang": "en", "note": "historical false positive: 'bugs' must not classify as coding"}
+{"prompt": "write me a poem about autumn rain", "expected": "creative", "lang": "en"}
+{"prompt": "brainstorm some ideas for a coffee shop name", "expected": "creative", "lang": "en"}
+{"prompt": "write a tagline for a fitness app", "expected": "creative", "lang": "en"}
+{"prompt": "write a story about a programmer fixing bugs", "expected": "creative", "lang": "en", "note": "creative intent must beat coding keywords"}
+{"prompt": "写一首关于秋天的诗", "expected": "creative", "lang": "zh"}
+{"prompt": "给咖啡店起个名字", "expected": "creative", "lang": "zh"}
+{"prompt": "写一个关于机器人的故事", "expected": "creative", "lang": "zh"}
+{"prompt": "帮我写一句广告语", "expected": "creative", "lang": "zh"}
+{"prompt": "word ", "repeat": 80000, "expected": "long_context", "lang": "en", "note": "~80k estimated tokens, above the 70k threshold"}
+{"prompt": "数据 ", "repeat": 20000, "expected": "long_context", "lang": "zh", "note": "2 CJK chars x 2 tokens x 20k reps = ~80k estimated tokens"}

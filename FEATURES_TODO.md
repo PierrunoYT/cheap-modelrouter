@@ -37,19 +37,25 @@ Replace the subjective `cost_score` / `quality_score` heuristics with real data:
 
 Makes routing reflect actual cost and capability instead of hand-tuned guesses.
 
-## 3. Eval & benchmark harness
+## 3. Eval & benchmark harness — DONE (2026-07-01)
 
-Add a test/eval harness so "SOTA" is **provable and tunable**, not asserted.
+Implemented as `evals/run_eval.py` + `evals/prompts.jsonl` (52 labeled EN/ZH/mixed
+prompts across all six task kinds). Fully offline and deterministic — no network.
 
 ```
-prompts.jsonl (labeled) -> run router
-  -> report: classification accuracy, $/req, p50/p95 latency
-  -> compare modes / configs / model tables
+python evals/run_eval.py                    # accuracy, confusion, mode comparison
+python evals/run_eval.py --json             # machine-readable report
+python evals/run_eval.py --update-baseline  # record accuracy in evals/baseline.json
 ```
 
-- Labeled prompt set (EN + CJK) for classification accuracy.
-- Cost/latency measurement per mode.
-- Regression guard when models or scores change.
+- Reports overall / per-language / per-task classification accuracy plus a
+  misclassification list and a per-mode routing comparison (mean cost/quality
+  score of the selected model).
+- Regression guard: exits non-zero if accuracy drops below `--min-accuracy`
+  (default 90%) or below the recorded baseline (currently 98.1%).
+- Wired into the unit suite via `tests/test_eval.py` (accuracy floors, dataset
+  coverage, mode-ordering invariants).
+- Not covered (needs live calls, deferred): $/req and p50/p95 latency measurement.
 
 ## 4. Production hardening
 
