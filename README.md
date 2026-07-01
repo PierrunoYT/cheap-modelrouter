@@ -164,9 +164,10 @@ curl http://127.0.0.1:8787/v1/chat/completions \
       "name": "Chinese Model Router",
       "options": { "baseURL": "http://127.0.0.1:8787/v1" },
       "models": {
-        "auto":    { "name": "Router (auto)" },
-        "cheap":   { "name": "Router (cheap)" },
-        "quality": { "name": "Router (quality)" }
+        "auto":     { "name": "Router (auto)" },
+        "cheap":    { "name": "Router (cheap)" },
+        "balanced": { "name": "Router (balanced)" },
+        "quality":  { "name": "Router (quality)" }
       }
     }
   },
