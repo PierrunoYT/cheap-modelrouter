@@ -215,6 +215,20 @@ MODELS: list[ModelProfile] = [
         max_context_tokens=262_000,
         notes="Ultra-budget route: $0.01/M in, ~9x cheaper than deepseek-v4-flash.",
     ),
+    ModelProfile(
+        name="ring_1t",
+        family="inclusionai",
+        model="inclusionai/ring-2.6-1t",
+        cost_score=1.6,
+        quality_score=7.2,  # est. from AA per-eval charts (no overall index yet)
+        # AA charts: Coding Index 42.8 (best relative domain, Terminal-Bench
+        # 43%) but weak agentic (18.9), reasoning (HLE ~18) and
+        # non-hallucination (~13%) -> cheap coding fallback only.
+        strengths={"coding"},
+        max_context_tokens=262_000,
+        notes="1T-param Ring reasoning model; budget coding route.",
+        reasoning=True,
+    ),
 
     # Tencent Hunyuan
     ModelProfile(

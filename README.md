@@ -94,6 +94,7 @@ family. Catalog-validated and benchmark-calibrated 2026-07-01 (AA =
 | `bytedance-seed/seed-2.0-lite` | unverified | simple | stronger Seed route |
 | `bytedance-seed/seed-2.0-mini` | unverified | simple | cheap Seed tier |
 | `tencent/hy3-preview` | unverified | simple | preview build, very cheap |
+| `inclusionai/ring-2.6-1t` | ~7.2 (est.) | coding | AA Coding Index 42.8; budget coding fallback |
 | `inclusionai/ling-2.6-flash` | unverified | simple, translation | $0.01/M in — cheapest route |
 
 The table lives at the top of `router.py` (`MODELS`) and is meant to be
