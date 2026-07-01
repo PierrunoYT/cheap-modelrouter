@@ -11,15 +11,22 @@ Chinese-origin LLM families available on OpenRouter (catalog snapshot 2026-07-01
 
 | Family | Slug(s) | Status / notes |
 |---|---|---|
-| **ByteDance Seed** | `bytedance-seed/seed-2.0-lite`, `bytedance-seed/seed-2.0-mini` | NEW since last snapshot: real general chat models, cheap ($0.10–0.25/M in), 262k ctx. Now the best near-term candidate. |
+| **inclusionAI (Ant Group)** | `inclusionai/ling-2.6-flash`, `inclusionai/ring-2.6-1t`, `inclusionai/ling-2.6-1t` | Ling/Ring line. `ling-2.6-flash` is $0.01/M in — 9x cheaper than deepseek-v4-flash, cheapest Chinese model on the catalog. Not yet in AA benchmarks; add once quality is measurable. |
+| **ByteDance Seed** | `bytedance-seed/seed-2.0-lite`, `bytedance-seed/seed-2.0-mini` | Real general chat models, cheap ($0.10–0.25/M in), 262k ctx. Not yet in AA benchmarks. |
 | **StepFun** | `stepfun/step-3.7-flash`, `stepfun/step-3.5-flash` | Cheap/fast general models. |
 | **Tencent Hunyuan** | `tencent/hy3-preview`, `tencent/hunyuan-a13b-instruct` | `hy3-preview` is newest but still a preview build. |
 | **Baidu ERNIE** | `baidu/ernie-4.5-vl-424b-a47b` | Still only a vision (VL) variant exposed; wait for a standard chat build. |
 
 ## Recommendation when revisiting
 
-1. Add **ByteDance Seed** (`seed-2.0-lite`/`seed-2.0-mini`) first — new general-purpose family, very cheap.
-2. Add **StepFun** (`step-3.7-flash`) second — fills the low-cost tier.
+Policy: add a model only once Artificial Analysis publishes index/per-domain
+scores for it, so quality_score and strengths stay benchmark-grounded
+(2026-07-01 decision).
+
+1. Watch **inclusionAI** (`ling-2.6-flash`) — at $0.01/M in, any reasonable AA
+   score makes it the new budget tier.
+2. Then **ByteDance Seed** (`seed-2.0-lite`/`seed-2.0-mini`) and **StepFun**
+   (`step-3.7-flash`).
 3. Consider **Hunyuan** (`hy3-preview`) once it leaves preview.
 4. Hold **ERNIE** until a non-VL chat model ships.
 
