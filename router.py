@@ -111,8 +111,10 @@ MODELS: list[ModelProfile] = [
         cost_score=1.0,
         quality_score=7.6,  # AA index 40 (up to 47 at max reasoning effort)
         # AA charts: coding 56.2 (great per dollar); worst cohort AA-LCR (63)
-        # so no long_context strength despite the 1M window.
-        strengths={"simple", "coding", "translation"},
+        # so no long_context strength despite the 1M window. No "simple"
+        # either: 4% non-hallucination (AA-Omniscience) makes it a poor pick
+        # for the factual questions that task bucket includes.
+        strengths={"coding", "translation"},
         max_context_tokens=1_000_000,
         notes="Cheap default. Good for simple/coding/long-context first pass.",
         reasoning=True,
