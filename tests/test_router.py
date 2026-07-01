@@ -94,6 +94,62 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(router.route("hello"), [])
 
 
+class ToolSupportTests(unittest.TestCase):
+    def _profile(self, name, supports_tools):
+        return ModelProfile(
+            name=name, family="t", model=f"t/{name}",
+            cost_score=1.0, quality_score=5.0,
+            supports_tools=supports_tools,
+        )
+
+    def test_require_tools_filters_models(self):
+        router = EasyChineseModelRouter(
+            models=[self._profile("with_tools", True), self._profile("no_tools", False)]
+        )
+        names = [m.name for m in router.route("hello", require_tools=True)]
+        self.assertEqual(names, ["with_tools"])
+
+    def test_no_filter_without_require_tools(self):
+        router = EasyChineseModelRouter(
+            models=[self._profile("with_tools", True), self._profile("no_tools", False)]
+        )
+        self.assertEqual(len(router.route("hello")), 2)
+
+    def test_merge_tool_call_delta(self):
+        from types import SimpleNamespace as NS
+
+        acc = {}
+        # id + name arrive first, arguments stream in fragments.
+        EasyChineseModelRouter._merge_tool_call_delta(
+            acc, NS(index=0, id="call_1", function=NS(name="read_file", arguments='{"pa'))
+        )
+        EasyChineseModelRouter._merge_tool_call_delta(
+            acc, NS(index=0, id=None, function=NS(name=None, arguments='th": "a.py"}'))
+        )
+        EasyChineseModelRouter._merge_tool_call_delta(
+            acc, NS(index=1, id="call_2", function=NS(name="ls", arguments="{}"))
+        )
+
+        self.assertEqual(acc[0]["id"], "call_1")
+        self.assertEqual(acc[0]["function"]["name"], "read_file")
+        self.assertEqual(acc[0]["function"]["arguments"], '{"path": "a.py"}')
+        self.assertEqual(acc[1]["function"]["name"], "ls")
+
+    def test_last_user_text_string_and_parts(self):
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "first"},
+            {"role": "assistant", "content": "hi"},
+            {"role": "user", "content": [
+                {"type": "text", "text": "fix"},
+                {"type": "text", "text": "this bug"},
+            ]},
+        ]
+        self.assertEqual(
+            EasyChineseModelRouter._last_user_text(messages), "fix this bug"
+        )
+
+
 class ErrorClassificationTests(unittest.TestCase):
     class _Exc(Exception):
         def __init__(self, status_code=None):

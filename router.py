@@ -379,7 +379,13 @@ class EasyChineseModelRouter:
 
         return "simple"
 
-    def route(self, prompt: str, messages: list[dict] | None = None) -> list[ModelProfile]:
+    def route(
+        self,
+        prompt: str,
+        messages: list[dict] | None = None,
+        *,
+        require_tools: bool = False,
+    ) -> list[ModelProfile]:
         task = self.classify(prompt, messages)
         estimated_tokens = self.estimate_tokens(
             prompt if messages is None else json.dumps(messages, ensure_ascii=False)
@@ -390,6 +396,7 @@ class EasyChineseModelRouter:
             for model in self.models
             if estimated_tokens <= int(model.max_context_tokens * 0.85)
             and (self.allow_families is None or model.family.lower() in self.allow_families)
+            and (not require_tools or model.supports_tools)
         ]
 
         if not candidates:
@@ -424,9 +431,30 @@ class EasyChineseModelRouter:
 
         return sorted(candidates, key=score)
 
+    @staticmethod
+    def _last_user_text(messages: list[dict]) -> str:
+        """Text of the most recent user turn, for classification.
+
+        Handles both plain-string content and OpenAI multi-part content
+        (lists of {"type": "text", ...} blocks), as sent by agent clients.
+        """
+        for msg in reversed(messages):
+            if msg.get("role") != "user":
+                continue
+            content = msg.get("content")
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return " ".join(
+                    part.get("text", "")
+                    for part in content
+                    if isinstance(part, dict) and part.get("type") == "text"
+                )
+        return ""
+
     def chat(
         self,
-        prompt: str,
+        prompt: str = "",
         *,
         system: str = DEFAULT_SYSTEM,
         temperature: float = 0.2,
@@ -435,6 +463,9 @@ class EasyChineseModelRouter:
         stream: bool = False,
         history: list[dict] | None = None,
         session_id: str | None = None,
+        messages: list[dict] | None = None,
+        tools: list[dict] | None = None,
+        tool_choice: "str | dict | None" = None,
     ) -> "dict | StreamResult":
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
@@ -442,16 +473,24 @@ class EasyChineseModelRouter:
                 "OPENROUTER_API_KEY is missing. Create a .env file and paste your key."
             )
 
-        # Build the message list: system prompt, prior turns, then this prompt.
-        messages: list[dict] = [{"role": "system", "content": system}]
-        if history:
-            messages.extend(
-                msg for msg in history if msg.get("role") != "system"
-            )
-        messages.append({"role": "user", "content": prompt})
+        if messages is not None:
+            # Serving mode (e.g. server.py): the client sends a full OpenAI
+            # message list, including its own system prompt and tool results.
+            # Use it verbatim; classify on the latest user turn.
+            messages = list(messages)
+            if not prompt:
+                prompt = self._last_user_text(messages)
+        else:
+            # CLI/library mode: system prompt, prior turns, then this prompt.
+            messages = [{"role": "system", "content": system}]
+            if history:
+                messages.extend(
+                    msg for msg in history if msg.get("role") != "system"
+                )
+            messages.append({"role": "user", "content": prompt})
 
         task = self.classify(prompt, messages)
-        route = self.route(prompt, messages)
+        route = self.route(prompt, messages, require_tools=tools is not None)
 
         if not route:
             allowed = ", ".join(sorted(self.allow_families or [])) or "all"
@@ -481,6 +520,8 @@ class EasyChineseModelRouter:
                     max_tokens=max_tokens,
                     task=task,
                     session_id=session_id,
+                    tools=tools,
+                    tool_choice=tool_choice,
                 )
             )
 
@@ -496,6 +537,8 @@ class EasyChineseModelRouter:
                         temperature=temperature,
                         max_tokens=max_tokens,
                         task=task,
+                        tools=tools,
+                        tool_choice=tool_choice,
                     )
                     self._remember_sticky(session_id, model.name)
                     return result
@@ -591,6 +634,15 @@ class EasyChineseModelRouter:
                 )
             raise
 
+    @staticmethod
+    def _tool_kwargs(tools: list[dict] | None, tool_choice) -> dict:
+        kwargs: dict = {}
+        if tools:
+            kwargs["tools"] = tools
+        if tool_choice is not None:
+            kwargs["tool_choice"] = tool_choice
+        return kwargs
+
     def _call_openrouter(
         self,
         *,
@@ -600,6 +652,8 @@ class EasyChineseModelRouter:
         temperature: float,
         max_tokens: int,
         task: TaskKind,
+        tools: list[dict] | None = None,
+        tool_choice=None,
     ) -> dict:
         client = self._build_client(api_key)
         extra_body = self._reasoning_body(model, task)
@@ -611,15 +665,18 @@ class EasyChineseModelRouter:
             temperature=temperature,
             max_tokens=max_tokens,
             extra_body=extra_body,
+            **self._tool_kwargs(tools, tool_choice),
         )
 
         choice = response.choices[0]
+        tool_calls = [tc.model_dump() for tc in (choice.message.tool_calls or [])]
 
         return {
             "family": model.family,
             "model_name": model.name,
             "model": model.model,
             "content": choice.message.content or "",
+            "tool_calls": tool_calls or None,
             "finish_reason": choice.finish_reason,
             "usage": response.usage.model_dump() if response.usage else None,
         }
@@ -634,6 +691,8 @@ class EasyChineseModelRouter:
         max_tokens: int,
         task: TaskKind,
         session_id: str | None = None,
+        tools: list[dict] | None = None,
+        tool_choice=None,
     ):
         errors: list[str] = []
 
@@ -648,6 +707,8 @@ class EasyChineseModelRouter:
                         temperature=temperature,
                         max_tokens=max_tokens,
                         task=task,
+                        tools=tools,
+                        tool_choice=tool_choice,
                     )
                     while True:
                         try:
@@ -673,6 +734,27 @@ class EasyChineseModelRouter:
 
         raise RuntimeError("All routed models failed:\n" + "\n".join(errors[-12:]))
 
+    @staticmethod
+    def _merge_tool_call_delta(acc: dict[int, dict], tc) -> None:
+        """Fold one streamed tool-call delta into the accumulator.
+
+        OpenAI-style streams send tool calls in pieces keyed by ``index``:
+        the id/name arrive first, then the JSON arguments in fragments.
+        """
+        index = getattr(tc, "index", 0) or 0
+        entry = acc.setdefault(
+            index,
+            {"id": None, "type": "function", "function": {"name": "", "arguments": ""}},
+        )
+        if getattr(tc, "id", None):
+            entry["id"] = tc.id
+        fn = getattr(tc, "function", None)
+        if fn is not None:
+            if getattr(fn, "name", None):
+                entry["function"]["name"] = fn.name
+            if getattr(fn, "arguments", None):
+                entry["function"]["arguments"] += fn.arguments
+
     def _call_openrouter_stream(
         self,
         *,
@@ -682,6 +764,8 @@ class EasyChineseModelRouter:
         temperature: float,
         max_tokens: int,
         task: TaskKind,
+        tools: list[dict] | None = None,
+        tool_choice=None,
     ):
         client = self._build_client(api_key)
         extra_body = self._reasoning_body(model, task)
@@ -695,11 +779,13 @@ class EasyChineseModelRouter:
             extra_body=extra_body,
             stream=True,
             stream_options={"include_usage": True},
+            **self._tool_kwargs(tools, tool_choice),
         )
 
         content_parts: list[str] = []
         finish_reason: str | None = None
         usage: dict | None = None
+        tool_calls_acc: dict[int, dict] = {}
 
         for event in response:
             if event.usage:
@@ -709,6 +795,9 @@ class EasyChineseModelRouter:
             delta = event.choices[0]
             if delta.finish_reason:
                 finish_reason = delta.finish_reason
+            if delta.delta and delta.delta.tool_calls:
+                for tc in delta.delta.tool_calls:
+                    self._merge_tool_call_delta(tool_calls_acc, tc)
             if delta.delta and delta.delta.content:
                 content_parts.append(delta.delta.content)
                 yield delta.delta.content
@@ -718,6 +807,7 @@ class EasyChineseModelRouter:
             "model_name": model.name,
             "model": model.model,
             "content": "".join(content_parts),
+            "tool_calls": [tool_calls_acc[i] for i in sorted(tool_calls_acc)] or None,
             "finish_reason": finish_reason,
             "usage": usage,
         }

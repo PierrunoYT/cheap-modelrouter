@@ -66,6 +66,28 @@ Speed and reliability features:
 - **Response caching** keyed by prompt hash to skip repeat calls.
 - **Structured metrics/logging** — model, latency, tokens, cost per request.
 
+## 5. OpenAI-compatible serving mode — DONE (2026-07-01)
+
+Implemented as `server.py` (stdlib-only, no new dependencies). Lets OpenCode,
+Cline, Zed, curl, or the openai SDK use the router as a provider: the client
+picks a *mode* (`auto` / `cheap` / `balanced` / `quality`) as its "model" and
+the router selects the actual model per request.
+
+```
+python server.py                 # http://127.0.0.1:8787/v1
+POST /v1/chat/completions        # streaming SSE + JSON, tools passed through
+GET  /v1/models                  # the four modes
+```
+
+- `router.py` gained full tool-call support: `chat(tools=..., tool_choice=...)`,
+  tool_calls in both non-streaming results and streamed meta (deltas merged by
+  index), and `route(require_tools=True)` filtering on `supports_tools`.
+- Conversations are pinned to their first-routed model via sticky sessions
+  keyed by a hash of the first user message (agent clients resend the full
+  conversation each turn).
+- OpenCode `opencode.json` snippet lives in the `server.py` docstring.
+- Covered by `tests/test_server.py` (16 new tests, in-process HTTP, no network).
+
 ---
 
 ## Open questions to resolve before starting
