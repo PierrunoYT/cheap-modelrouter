@@ -228,6 +228,19 @@ MODELS: list[ModelProfile] = [
         notes="1T-param Ring reasoning model; budget coding route.",
         reasoning=True,
     ),
+    ModelProfile(
+        name="ling_1t",
+        family="inclusionai",
+        model="inclusionai/ling-2.6-1t",
+        cost_score=1.6,
+        quality_score=6.2,  # AA index 26 (AA's own estimate, 2026-07-02)
+        # AA charts: SciCode 37, IFBench 57, AA-LCR 35, non-hallucination 8%
+        # -- no domain where it leads, so no strengths; non-reasoning sibling
+        # of ring-2.6-1t at the same price, kept as fallback depth only.
+        strengths=set(),
+        max_context_tokens=262_000,
+        notes="1T-param Ling instruct model (non-reasoning twin of ring-2.6-1t).",
+    ),
 
     # Tencent Hunyuan
     ModelProfile(

@@ -11,7 +11,7 @@ Chinese-origin LLM families available on OpenRouter (catalog snapshot 2026-07-01
 
 | Family | Slug(s) | Status / notes |
 |---|---|---|
-| ~~inclusionAI~~ | `inclusionai/ling-2.6-flash`, `inclusionai/ring-2.6-1t` | ADDED 2026-07-01. Ring scored from AA per-eval charts (Coding 42.8, Agentic 18.9); `ling-2.6-1t` skipped — AA-LCR 35% and no niche vs ring. |
+| ~~inclusionAI~~ | `inclusionai/ling-2.6-flash`, `inclusionai/ring-2.6-1t`, `inclusionai/ling-2.6-1t` | ADDED 2026-07-01/02 (full family). `ling-2.6-1t` added at user request as fallback depth (AA est. 26, no strengths). |
 | ~~ByteDance Seed~~ | `bytedance-seed/seed-2.0-lite`, `-mini` | ADDED 2026-07-01 (unverified scores). |
 | ~~Tencent Hunyuan~~ | `tencent/hy3-preview` | ADDED 2026-07-01 (unverified scores; still a preview build). |
 | **StepFun** | `stepfun/step-3.7-flash`, `stepfun/step-3.5-flash` | Cheap/fast general models. |
