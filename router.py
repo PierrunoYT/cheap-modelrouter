@@ -320,7 +320,7 @@ class EasyChineseModelRouter:
     def classify(self, prompt: str, messages: list[dict] | None = None) -> TaskKind:
         text = prompt.lower()
         token_estimate = self.estimate_tokens(
-            prompt if messages is None else json.dumps(messages)
+            prompt if messages is None else json.dumps(messages, ensure_ascii=False)
         )
 
         if token_estimate > 70_000:
@@ -382,7 +382,7 @@ class EasyChineseModelRouter:
     def route(self, prompt: str, messages: list[dict] | None = None) -> list[ModelProfile]:
         task = self.classify(prompt, messages)
         estimated_tokens = self.estimate_tokens(
-            prompt if messages is None else json.dumps(messages)
+            prompt if messages is None else json.dumps(messages, ensure_ascii=False)
         )
 
         candidates = [
@@ -523,7 +523,7 @@ class EasyChineseModelRouter:
         if os.getenv("OPENROUTER_REFERER"):
             headers["HTTP-Referer"] = os.getenv("OPENROUTER_REFERER", "")
         if os.getenv("OPENROUTER_APP_NAME"):
-            headers["X-OpenRouter-Title"] = os.getenv("OPENROUTER_APP_NAME", "")
+            headers["X-Title"] = os.getenv("OPENROUTER_APP_NAME", "")
         return headers
 
     def _build_client(self, api_key: str):
@@ -881,7 +881,7 @@ def main() -> int:
                 print(chunk, end="", flush=True)
             meta = stream_result.meta
             print(
-                f"\n---\nfamily={meta['family']} model={meta['model']} usage={meta['usage']}",
+                f"\n---\nfamily={meta.get('family')} model={meta.get('model')} usage={meta.get('usage')}",
                 file=sys.stderr,
             )
             return 0
