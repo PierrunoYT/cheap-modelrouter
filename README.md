@@ -135,7 +135,7 @@ Endpoints:
 | `GET /health` | Liveness check |
 
 The client requests a *mode* as its "model" (`auto`, `cheap`, `balanced`,
-`quality`; provider-prefixed ids like `myrouter/auto` also work), and the
+`quality`; provider-prefixed ids like `cnrouter/auto` also work), and the
 router picks the actual model per request. Your OpenRouter key stays on the
 server — clients never see it. Each conversation is pinned to its
 first-routed model (best-effort, keyed by a hash of the first user message) so
@@ -159,7 +159,7 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "myrouter": {
+    "cnrouter": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Chinese Model Router",
       "options": { "baseURL": "http://127.0.0.1:8787/v1" },
@@ -171,7 +171,7 @@ curl http://127.0.0.1:8787/v1/chat/completions \
       }
     }
   },
-  "model": "myrouter/auto"
+  "model": "cnrouter/auto"
 }
 ```
 

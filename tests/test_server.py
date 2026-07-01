@@ -28,7 +28,7 @@ class ResolveModeTests(unittest.TestCase):
         self.assertEqual(resolve_mode("cheap"), "cheap")
 
     def test_provider_prefixed(self):
-        self.assertEqual(resolve_mode("myrouter/quality"), "quality")
+        self.assertEqual(resolve_mode("cnrouter/quality"), "quality")
 
     def test_unknown_falls_back_to_auto(self):
         self.assertEqual(resolve_mode("gpt-4o"), "auto")
@@ -137,7 +137,7 @@ class HTTPIntegrationTests(unittest.TestCase):
         self._inject("cheap", stub)
 
         with self._post("/v1/chat/completions", {
-            "model": "myrouter/cheap",
+            "model": "cnrouter/cheap",
             "messages": [{"role": "user", "content": "hi"}],
             "tools": [{"type": "function", "function": {"name": "ls"}}],
         }) as resp:

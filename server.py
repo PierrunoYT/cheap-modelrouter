@@ -18,18 +18,19 @@ OpenCode setup (opencode.json):
   {
     "$schema": "https://opencode.ai/config.json",
     "provider": {
-      "myrouter": {
+      "cnrouter": {
         "npm": "@ai-sdk/openai-compatible",
         "name": "Chinese Model Router",
         "options": { "baseURL": "http://127.0.0.1:8787/v1" },
         "models": {
-          "auto":    { "name": "Router (auto)" },
-          "cheap":   { "name": "Router (cheap)" },
-          "quality": { "name": "Router (quality)" }
+          "auto":     { "name": "Router (auto)" },
+          "cheap":    { "name": "Router (cheap)" },
+          "balanced": { "name": "Router (balanced)" },
+          "quality":  { "name": "Router (quality)" }
         }
       }
     },
-    "model": "myrouter/auto"
+    "model": "cnrouter/auto"
   }
 
 The server keeps OPENROUTER_API_KEY on this machine; the client never sees it.
@@ -62,7 +63,7 @@ MODES = ("auto", "cheap", "balanced", "quality")
 def resolve_mode(model_field: str | None) -> str:
     """Map the request's ``model`` to a routing mode.
 
-    Accepts bare modes ("cheap") and provider-prefixed ids ("myrouter/cheap").
+    Accepts bare modes ("cheap") and provider-prefixed ids ("cnrouter/cheap").
     Anything unrecognized falls back to "auto" so clients with hardcoded
     model names still work.
     """
