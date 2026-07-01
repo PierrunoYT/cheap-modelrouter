@@ -150,6 +150,73 @@ class ToolSupportTests(unittest.TestCase):
         )
 
 
+class LlmClassifierTests(unittest.TestCase):
+    """LLM classifier dispatch, parsing and fallback -- no network calls."""
+
+    def _router(self, reply=None, error=None):
+        router = EasyChineseModelRouter(classifier="llm")
+        calls = []
+
+        def fake_classify_llm(prompt):
+            calls.append(prompt)
+            if error:
+                raise error
+            return reply
+
+        router._classify_llm = fake_classify_llm
+        router._llm_calls = calls
+        return router
+
+    def test_uses_llm_label(self):
+        router = self._router(reply="creative")
+        self.assertEqual(router.classify("name my new coffee shop"), "creative")
+
+    def test_falls_back_to_keyword_on_error(self):
+        router = self._router(error=RuntimeError("offline"))
+        self.assertEqual(router.classify("translate this paragraph"), "translation")
+
+    def test_long_context_never_calls_llm(self):
+        router = self._router(reply="simple")
+        big = "word " * 80_000
+        self.assertEqual(router.classify(big), "long_context")
+        self.assertEqual(router._llm_calls, [])
+
+    def test_result_is_cached_per_prompt(self):
+        router = self._router(reply="coding")
+        router.classify("fix my thing")
+        router.classify("fix my thing")
+        self.assertEqual(len(router._llm_calls), 1)
+
+    def test_keyword_default_never_calls_llm(self):
+        router = EasyChineseModelRouter()  # classifier="keyword"
+        router._classify_llm = lambda prompt: self.fail("LLM classifier called")
+        self.assertEqual(router.classify("hello there"), "simple")
+
+    def test_parse_tolerates_chatty_reply(self):
+        # Exercise the real reply-parsing logic with a fake API client.
+        from types import SimpleNamespace as NS
+
+        router = EasyChineseModelRouter(classifier="llm")
+        response = NS(choices=[NS(message=NS(content="Category: Coding."))])
+        client = NS(chat=NS(completions=NS(create=lambda **kw: response)))
+        router._build_client = lambda api_key: client
+
+        os.environ["OPENROUTER_API_KEY"] = "sk-test-dummy"
+        self.assertEqual(router._classify_llm("whatever"), "coding")
+
+    def test_parse_rejects_junk_reply(self):
+        from types import SimpleNamespace as NS
+
+        router = EasyChineseModelRouter(classifier="llm")
+        response = NS(choices=[NS(message=NS(content="I cannot classify that"))])
+        client = NS(chat=NS(completions=NS(create=lambda **kw: response)))
+        router._build_client = lambda api_key: client
+
+        os.environ["OPENROUTER_API_KEY"] = "sk-test-dummy"
+        with self.assertRaises(ValueError):
+            router._classify_llm("whatever")
+
+
 class ErrorClassificationTests(unittest.TestCase):
     class _Exc(Exception):
         def __init__(self, status_code=None):

@@ -45,6 +45,25 @@ Mode = Literal["auto", "cheap", "balanced", "quality"]
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_SYSTEM = "You are a helpful, accurate assistant. Be concise unless detail is needed."
 
+# Cheapest model in the table doubles as the task classifier for
+# ``classifier="llm"``. A classification call is ~50 tokens total.
+DEFAULT_CLASSIFIER_MODEL = "deepseek/deepseek-v4-flash"
+
+TASK_KINDS: set[str] = {
+    "simple", "coding", "reasoning", "long_context", "translation", "creative",
+}
+
+CLASSIFIER_INSTRUCTION = (
+    "Classify the user request into exactly one category:\n"
+    "- simple: greetings, chit-chat, small factual questions\n"
+    "- coding: writing/fixing/explaining code, debugging, dev tooling\n"
+    "- reasoning: analysis, comparisons, math, planning, architecture\n"
+    "- translation: translating between languages or polishing grammar\n"
+    "- creative: stories, poems, slogans, naming, marketing copy\n"
+    "The request may be in any language (often Chinese or English).\n"
+    "Reply with ONLY the category word."
+)
+
 
 @dataclass(frozen=True)
 class ModelProfile:
@@ -211,11 +230,18 @@ class EasyChineseModelRouter:
         allow_families: set[str] | None = None,
         sticky_ttl: float = 300.0,
         sticky_store: str | None = None,
+        classifier: Literal["keyword", "llm"] = "keyword",
+        classifier_model: str = DEFAULT_CLASSIFIER_MODEL,
     ) -> None:
         self.models = list(models)
         self.mode = mode
         self.max_retries_per_model = max_retries_per_model
         self.allow_families = {f.lower() for f in allow_families} if allow_families else None
+        self.classifier = classifier
+        self.classifier_model = classifier_model
+        # Memo of the last classification so classify() called from both
+        # chat() and route() costs at most one LLM call per request.
+        self._classify_cache: tuple[str, TaskKind] | None = None
 
         # Session stickiness: once a session routes to a model, reuse it for
         # follow-up turns so the provider prompt cache stays warm and the
@@ -318,13 +344,61 @@ class EasyChineseModelRouter:
         return max(1, cjk_chars * 2 + other_chars // 4)
 
     def classify(self, prompt: str, messages: list[dict] | None = None) -> TaskKind:
-        text = prompt.lower()
         token_estimate = self.estimate_tokens(
             prompt if messages is None else json.dumps(messages, ensure_ascii=False)
         )
 
+        # Long-context is a budget question, not an intent question, so it is
+        # always decided from the token estimate -- never sent to the LLM.
         if token_estimate > 70_000:
             return "long_context"
+
+        if self.classifier == "llm":
+            if self._classify_cache and self._classify_cache[0] == prompt:
+                return self._classify_cache[1]
+            try:
+                task = self._classify_llm(prompt)
+            except Exception:
+                # Offline, bad key, timeout, junk reply: keyword fallback.
+                task = self.classify_keyword(prompt)
+            self._classify_cache = (prompt, task)
+            return task
+
+        return self.classify_keyword(prompt)
+
+    def _classify_llm(self, prompt: str) -> TaskKind:
+        """Label the task with a cheap LLM call (~50 tokens round trip)."""
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENROUTER_API_KEY missing for LLM classifier")
+
+        client = self._build_client(api_key)
+        response = client.chat.completions.create(
+            model=self.classifier_model,
+            messages=[
+                {"role": "system", "content": CLASSIFIER_INSTRUCTION},
+                # 2000 chars is plenty of signal; keeps the call cheap even
+                # when the user pastes a large document.
+                {"role": "user", "content": prompt[:2000]},
+            ],
+            temperature=0.0,
+            max_tokens=10,
+            timeout=10.0,
+        )
+
+        reply = (response.choices[0].message.content or "").strip().lower()
+        if reply in TASK_KINDS:
+            return reply  # type: ignore[return-value]
+
+        # Tolerate chatty replies like "category: coding".
+        for kind in TASK_KINDS:
+            if re.search(rf"\b{kind}\b", reply):
+                return kind  # type: ignore[return-value]
+
+        raise ValueError(f"Unrecognized classifier reply: {reply!r}")
+
+    def classify_keyword(self, prompt: str) -> TaskKind:
+        text = prompt.lower()
 
         # Each category carries both English (\b word-boundary) patterns and
         # Chinese/CJK patterns. CJK has no word boundaries, so those are bare
@@ -501,6 +575,7 @@ class EasyChineseModelRouter:
         if dry_run:
             return {
                 "task": task,
+                "classifier": self.classifier,
                 "mode": self.mode,
                 "session_id": session_id,
                 "sticky": bool(session_id) and session_id in self._sticky_choices,
@@ -883,6 +958,20 @@ def main() -> int:
         action="append",
         help="Restrict to a family: deepseek, qwen, kimi, glm, minimax, mimo. Can be repeated.",
     )
+    parser.add_argument(
+        "--classifier",
+        choices=["keyword", "llm"],
+        default="keyword",
+        help=(
+            "How to detect the task type: 'keyword' (offline regex, default) or "
+            "'llm' (ask a cheap OpenRouter model; falls back to keyword on error)."
+        ),
+    )
+    parser.add_argument(
+        "--classifier-model",
+        default=DEFAULT_CLASSIFIER_MODEL,
+        help=f"Model slug used by --classifier llm (default: {DEFAULT_CLASSIFIER_MODEL})",
+    )
     parser.add_argument("--max-tokens", type=int, default=2048)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--dry-run", action="store_true", help="Only show routing decision")
@@ -943,6 +1032,8 @@ def main() -> int:
         mode=args.mode,
         allow_families=set(args.family) if args.family else None,
         sticky_store=sticky_store,
+        classifier=args.classifier,
+        classifier_model=args.classifier_model,
     )
 
     history: list[dict] | None = None

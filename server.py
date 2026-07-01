@@ -145,9 +145,13 @@ class RouterServer(ThreadingHTTPServer):
         *,
         allow_families: set[str] | None = None,
         sticky: bool = True,
+        classifier: str = "keyword",
+        classifier_model: str | None = None,
     ) -> None:
         super().__init__(address, RouterHTTPHandler)
         self.allow_families = allow_families
+        self.classifier = classifier
+        self.classifier_model = classifier_model
         self.sticky_store = (
             os.path.join(tempfile.gettempdir(), "echinese_router_sessions.json")
             if sticky
@@ -157,10 +161,15 @@ class RouterServer(ThreadingHTTPServer):
 
     def get_router(self, mode: str) -> EasyChineseModelRouter:
         if mode not in self._routers:
+            kwargs: dict = {}
+            if self.classifier_model:
+                kwargs["classifier_model"] = self.classifier_model
             self._routers[mode] = EasyChineseModelRouter(
                 mode=mode,  # type: ignore[arg-type]
                 allow_families=self.allow_families,
                 sticky_store=self.sticky_store,
+                classifier=self.classifier,  # type: ignore[arg-type]
+                **kwargs,
             )
         return self._routers[mode]
 
@@ -327,6 +336,19 @@ def main() -> int:
         action="store_true",
         help="Disable pinning conversations to their first-routed model",
     )
+    parser.add_argument(
+        "--classifier",
+        choices=["keyword", "llm"],
+        default="keyword",
+        help=(
+            "How to detect the task type: 'keyword' (offline regex, default) or "
+            "'llm' (ask a cheap OpenRouter model; falls back to keyword on error)."
+        ),
+    )
+    parser.add_argument(
+        "--classifier-model",
+        help="Model slug used by --classifier llm (default: cheapest in the table)",
+    )
     args = parser.parse_args()
 
     if not os.getenv("OPENROUTER_API_KEY"):
@@ -339,6 +361,8 @@ def main() -> int:
         (args.host, args.port),
         allow_families=set(args.family) if args.family else None,
         sticky=not args.no_sticky,
+        classifier=args.classifier,
+        classifier_model=args.classifier_model,
     )
 
     print(f"Router API listening on http://{args.host}:{args.port}/v1")
