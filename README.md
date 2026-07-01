@@ -1,8 +1,9 @@
 # Easy Chinese Model Router
 
-A one-file router for cheap, capable Chinese LLMs (DeepSeek, Qwen, Kimi, GLM,
-MiniMax, MiMo) via [OpenRouter](https://openrouter.ai). It classifies each
-prompt, picks the best-fit model for the task and budget — using
+A one-file router for cheap, capable Chinese LLMs — DeepSeek, Qwen, Kimi,
+GLM, MiniMax, MiMo (Xiaomi), inclusionAI (Ant Group), Hunyuan (Tencent) and
+Seed (ByteDance) — via [OpenRouter](https://openrouter.ai). It classifies
+each prompt, picks the best-fit model for the task and budget — using
 benchmark-grounded quality and strength data, not guesses — and falls back
 through the remaining candidates on errors.
 
@@ -76,8 +77,9 @@ python router.py --prompt "..." [options]
 
 ## Models
 
-Current-generation models only, one budget and/or one flagship route per
-family. Catalog-validated and benchmark-calibrated 2026-07-01 (AA =
+15 current-generation models across 9 families, spanning flagship routes down
+to a $0.01/M ultra-budget tier. Catalog-validated and benchmark-calibrated
+2026-07-02 (AA =
 [Artificial Analysis Intelligence Index](https://artificialanalysis.ai/leaderboards/models) v4.1):
 
 | Model | AA index | Routed for | Notes |
@@ -105,10 +107,10 @@ calibrated to the AA index (`7.6 + 0.1 * (index - 40)`), `strengths` to AA's
 per-domain charts (Coding/Agentic Index, AA-LCR, GPQA/HLE/CritPt,
 AA-Omniscience, IFBench), and with `--live-pricing` the cost scores are
 derived from OpenRouter's real price list (`1 + log2(price/cheapest)`, cached
-to disk daily, stale-tolerant offline). The four "unverified" models are not
-yet covered by Artificial Analysis; they carry conservative estimated scores
-until benchmarks land. Candidates not yet added are tracked in
-`MODELS_TODO.md`.
+to disk daily, stale-tolerant offline). The three "unverified" models (both
+Seeds and ling-2.6-flash) are not yet covered by Artificial Analysis; they
+carry conservative estimated scores and minimal strengths until benchmarks
+land. Candidates not yet added are tracked in `MODELS_TODO.md`.
 
 With `--log-file`, every completed request appends a JSONL line with the
 routed model, task, latency, token counts (including hidden reasoning tokens)
